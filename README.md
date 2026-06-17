@@ -5,7 +5,7 @@
 ![Web Serial API](https://img.shields.io/badge/Web_Serial_API-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 
 ## 📖 Overview
-This project provides a comprehensive software solution for configuring and monitoring the **LR1100 Ultrasonic Smart Water Meter**. It was developed during my internship program and consists of two main modules:
+This project provides a comprehensive software solution for configuring and monitoring the **LR1100 Ultrasonic Smart Water Meter**. It was developed during my internship program at SVTECH and consists of two main modules:
 1. **Web Configuration Tool:** A ReactJS application using the Web Serial API to communicate directly with the meter via an IR (Infrared) cable.
 2. **IoT Payload Decoder:** A JavaScript Data Converter designed for the ThingsBoard IoT Platform to parse raw Hex payloads via 4G network into readable telemetry data.
 
@@ -17,14 +17,15 @@ This project provides a comprehensive software solution for configuring and moni
 * **Auto-provisioning:** Dynamically extracts the MAC ID from the payload to auto-register devices on ThingsBoard.
 
 ## 📂 Project Structure
-```text
-/
-├── src/                  # ReactJS Web Configuration Tool source code
-├── public/               # Web public assets
-├── thingsboard-script/   # Contains decoder.js (Uplink Data Converter)
-└── docs/                 # Hardware manuals & wiring diagrams
 
-🛠️ Technologies Used
-* **Frontend: React, TypeScript, Web Serial API
-* **IoT Platform: ThingsBoard (Rule Chains, Data Converters, Dashboards)
-* **Protocol: CJ/T-188 (Hexadecimal payload)
+    /
+    ├── src/                  # ReactJS Web Configuration Tool source code
+    ├── public/               # Web public assets
+    ├── thingsboard-script/   # Contains decoder.js (Uplink Data Converter)
+    └── docs/                 # Hardware manuals & wiring diagrams
+
+
+## 🛠️ Technologies Used
+* **Frontend:** React, TypeScript, Web Serial API
+* **IoT Platform:** ThingsBoard (Rule Chains, Data Converters, Dashboards)
+* **Protocol:** CJ/T-188 (Hexadecimal payload)
