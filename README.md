@@ -23,3 +23,8 @@ This project provides a comprehensive software solution for configuring and moni
 ├── public/               # Web public assets
 ├── thingsboard-script/   # Contains decoder.js (Uplink Data Converter)
 └── docs/                 # Hardware manuals & wiring diagrams
+
+🛠️ Technologies Used
+* **Frontend: React, TypeScript, Web Serial API
+* **IoT Platform: ThingsBoard (Rule Chains, Data Converters, Dashboards)
+* **Protocol: CJ/T-188 (Hexadecimal payload)
