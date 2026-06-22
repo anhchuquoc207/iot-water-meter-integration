@@ -98,7 +98,7 @@ export const createIntervalConfigFrame = (
     // 1. Tạo phần thân dữ liệu (Body)
     const body = [
         0x68, 0x10,                                     // Mã Start và Control
-        0x01, 0x14, 0x07, 0x25, 0x20, 0x00, 0x00,       // 7 byte địa chỉ Broadcast
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,       // 7 byte địa chỉ Broadcast
         0x04, 0x0B,                                     // Lệnh Write (0x04) và Độ dài data (0x0B = 11 byte)
         0xF1, 0x11, 0x00,                               // Mã Register cấu hình chu kỳ (F1 11 00)
         minute,                                         // Tham số 1: Phút

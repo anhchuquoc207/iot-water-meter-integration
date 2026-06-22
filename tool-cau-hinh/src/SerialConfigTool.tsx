@@ -24,8 +24,8 @@ const SerialConfigTool = () => {
     const [status, setStatus] = useState<string>('Chưa kết nối');
     const [receiveData, setReceiveData] = useState<string>(''); 
     
-    const [ip, setIp] = useState<string>('120.76.28.220');
-    const [portNum, setPortNum] = useState<string>('80');
+    const [ip, setIp] = useState<string>('113.161.56.137');
+    const [portNum, setPortNum] = useState<string>('7002');
     const [network, setNetwork] = useState<keyof typeof APN_COMMANDS>('VIETTEL'); 
     
     // State cho Cấu hình Tần suất gửi
@@ -110,15 +110,27 @@ const SerialConfigTool = () => {
     };
 
     // Bắn lệnh IP
+    // Bắn lệnh IP (Đã fix logic Đánh thức phần cứng)
     const sendIpConfig = async () => {
         if (!portDetails || !portDetails.writable) return;
         try {
-            setStatus('Đang gửi lệnh cấu hình IP...');
+            setStatus('Đang đánh thức cổng hồng ngoại...');
             const writer = portDetails.writable.getWriter();
-            const payload = createIpConfigFrame(ip, portNum);
             
+            // 1. Gửi chuỗi đánh thức (Preamble Wakeup)
+            const wakeupPayload = new Uint8Array([0xFE, 0xFE, 0xFE, 0xFE]);
+            await writer.write(wakeupPayload);
+            
+            // 2. Tạm dừng 500ms cho vi điều khiển của đồng hồ "mở mắt" (RẤT QUAN TRỌNG)
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            setStatus('Đang gửi lệnh cấu hình IP chính thức...');
+            // 3. Gửi lệnh chính
+            const payload = createIpConfigFrame(ip, portNum);
             await writer.write(payload);
+            
             writer.releaseLock();
+            setStatus('Đã gửi! Hãy quan sát khung DỮ LIỆU TRẢ VỀ bên dưới...');
         } catch (error) {
             console.error('Lỗi khi gửi dữ liệu:', error);
             setStatus('Lỗi truyền dữ liệu.');
@@ -129,14 +141,23 @@ const SerialConfigTool = () => {
     const sendApnConfig = async () => {
         if (!portDetails || !portDetails.writable) return;
         try {
-            setStatus(`Đang gửi cấu hình mạng ${network}...`);
+            setStatus(`Đang đánh thức và gửi cấu hình mạng ${network}...`);
             const writer = portDetails.writable.getWriter();
-            const payload = APN_COMMANDS[network];
             
+            // 1. Gửi chuỗi đánh thức (Rất quan trọng)
+            const wakeupPayload = new Uint8Array([0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE]);
+            await writer.write(wakeupPayload);
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 2. Gửi lệnh cấu hình APN
+            const payload = APN_COMMANDS[network];
             await writer.write(payload);
             writer.releaseLock();
+            
+            setStatus('Đã gửi lệnh APN! Đang chờ phản hồi...');
         } catch (error) {
             console.error('Lỗi khi gửi APN:', error);
+            setStatus('Lỗi truyền dữ liệu APN.');
         }
     };
 
