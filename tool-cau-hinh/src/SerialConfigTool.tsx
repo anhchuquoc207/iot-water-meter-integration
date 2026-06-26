@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { createIpConfigFrame, APN_COMMANDS, parseWaterVolume, createIntervalConfigFrame, createTimeCalibFrame } from './utils/hexUtils';
 
-// 🛡️ Khai báo cực kỳ chặt chẽ, không dùng chữ 'any'
+// Khai báo cực kỳ chặt chẽ, không dùng chữ 'any'
 interface ISerialPort {
     open: (options: { baudRate: number, dataBits?: number, stopBits?: number, parity?: string }) => Promise<void>;
     setSignals: (signals: { dataTerminalReady?: boolean, requestToSend?: boolean }) => Promise<void>;
