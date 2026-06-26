@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { createIpConfigFrame, APN_COMMANDS, parseWaterVolume, createIntervalConfigFrame } from './utils/hexUtils';
+import { createIpConfigFrame, APN_COMMANDS, parseWaterVolume, createIntervalConfigFrame, createTimeCalibFrame } from './utils/hexUtils';
 
 // 🛡️ Khai báo cực kỳ chặt chẽ, không dùng chữ 'any'
 interface ISerialPort {
@@ -137,6 +137,30 @@ const SerialConfigTool = () => {
         }
     };
 
+    // Bắn lệnh Đồng bộ thời gian
+    const sendTimeCalibration = async () => {
+        if (!portDetails || !portDetails.writable) return;
+        try {
+            setStatus('Đang đánh thức và gửi lệnh đồng bộ thời gian...');
+            const writer = portDetails.writable.getWriter();
+            
+            // 1. Gửi chuỗi đánh thức (Preamble Wakeup) giống các hàm cấu hình khác
+            const wakeupPayload = new Uint8Array([0xFE, 0xFE, 0xFE, 0xFE]);
+            await writer.write(wakeupPayload);
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 2. Gửi lệnh đồng bộ thời gian chính thức
+            const payload = createTimeCalibFrame(new Date());
+            await writer.write(payload);
+            
+            writer.releaseLock();
+            setStatus('Đã gửi lệnh đồng bộ thời gian! (Lệnh này không có phản hồi)');
+        } catch (error) {
+            console.error('Lỗi khi gửi đồng bộ thời gian:', error);
+            setStatus('Lỗi truyền dữ liệu.');
+        }
+    };
+
     // Bắn lệnh Nhà mạng (APN)
     const sendApnConfig = async () => {
         if (!portDetails || !portDetails.writable) return;
@@ -183,6 +207,37 @@ const SerialConfigTool = () => {
             setStatus('Đã gửi lệnh chu kỳ thành công! Đang chờ phản hồi...');
         } catch (error) {
             console.error('Lỗi khi gửi cấu hình chu kỳ:', error);
+            setStatus('Lỗi truyền dữ liệu.');
+        }
+    };
+
+    // Bắn lệnh Đọc dữ liệu đồng hồ (Lệnh 90 4F) - Đã fix địa chỉ Broadcast
+    // Bắn lệnh Đọc dữ liệu đồng hồ (Lệnh 90 4F) - Dùng Địa chỉ thực tế
+    const readMeterData = async () => {
+        if (!portDetails || !portDetails.writable) return;
+        try {
+            setStatus('Đang đánh thức và yêu cầu đồng hồ trả data...');
+            const writer = portDetails.writable.getWriter();
+            
+            // 1. Gửi chuỗi đánh thức (Tăng lên 10 byte FE cho tia IR đủ mạnh)
+            const wakeupPayload = new Uint8Array([0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE]);
+            await writer.write(wakeupPayload);
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // 2. Gửi lệnh đọc data ĐỊCH DANH ĐỒNG HỒ
+            const payload = new Uint8Array([
+                0xFE, 0xFE, 
+                0x68, 0x10, 
+                0x01, 0x14, 0x07, 0x25, 0x20, 0x00, 0x00, // ĐÃ SỬA: Địa chỉ thật của đồng hồ em
+                0x01, 0x03, 0x90, 0x4F, 0x00,             // Lệnh đọc 90 4F
+                0xBC, 0x16                                // ĐÃ SỬA: Checksum = BC
+            ]);
+            await writer.write(payload);
+            writer.releaseLock();
+            
+            setStatus('Đã gửi lệnh đọc Data! Hãy chờ chuỗi Hex trả về bên dưới...');
+        } catch (error) {
+            console.error('Lỗi khi đọc data:', error);
             setStatus('Lỗi truyền dữ liệu.');
         }
     };
@@ -281,6 +336,35 @@ const SerialConfigTool = () => {
                 </button>
             </div>
 
+            {/* --- PHẦN CẤU HÌNH ĐỒNG BỘ THỜI GIAN --- */}
+            <div style={{ border: '1px solid #e5e7eb', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h4 style={{ marginTop: 0 }}>🕐 Đồng Bộ Thời Gian Đồng Hồ</h4>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '15px' }}>
+                    Lệnh này sẽ lấy giờ hiện tại của máy tính và nạp xuống đồng hồ. Đồng hồ sẽ không trả về tín hiệu phản hồi sau khi nhận lệnh.
+                </p>
+                <button 
+                    onClick={sendTimeCalibration} 
+                    disabled={!portDetails} 
+                    style={{ padding: '10px', width: '100%', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                    Gửi lệnh đồng bộ thời gian ngay
+                </button>
+            </div>
+
+            {/* --- NÚT BẤM TEST DATA (TẠM THỜI) --- */}
+            <div style={{ border: '2px dashed #dc2626', padding: '15px', borderRadius: '8px', marginBottom: '20px', backgroundColor: '#fef2f2' }}>
+                <h4 style={{ marginTop: 0, color: '#dc2626' }}>Chức năng Test Sóng (Dành cho Debug)</h4>
+                <p style={{ fontSize: '12px', color: '#991b1b', marginBottom: '10px' }}>
+                    Nút này sẽ ép đồng hồ nôn ra thông số RSRP để kiểm tra xem nó có bắt được sóng NB-IoT hay không.
+                </p>
+                <button 
+                    onClick={readMeterData} 
+                    disabled={!portDetails} 
+                    style={{ padding: '12px', width: '100%', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                    🚨 Đọc thông số sóng Đồng Hồ (RSRP)
+                </button>
+            </div>
             {/* --- KHUNG HIỂN THỊ DỮ LIỆU NHẬN TỪ ĐỒNG HỒ --- */}
             <div style={{ border: '1px solid #e5e7eb', padding: '15px', borderRadius: '8px', backgroundColor: '#f8fafc', marginBottom: '20px' }}>
                 <h4 style={{ marginTop: 0, color: '#0f172a' }}>Dữ liệu đồng hồ trả về:</h4>

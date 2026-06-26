@@ -114,3 +114,34 @@ export const createIntervalConfigFrame = (
     // 3. Đóng gói Frame hoàn chỉnh
     return new Uint8Array([0xFE, 0xFE, ...body, checksum, 0x16]);
 };
+
+export const createTimeCalibFrame = (date: Date): Uint8Array => {
+    // Hàm chuyển số thập phân sang BCD (chuẩn của đồng hồ)
+    const toBCD = (val: number) => ((Math.floor(val / 10) << 4) | (val % 10));
+    
+    const year = date.getFullYear();
+    const payload = [
+        0x15, 0xA0, 0x00, // Mã lệnh đồng bộ thời gian
+        toBCD(date.getSeconds()),
+        toBCD(date.getMinutes()),
+        toBCD(date.getHours()),
+        toBCD(date.getDate()),
+        toBCD(date.getMonth() + 1), // Tháng trong JS bắt đầu từ 0
+        toBCD(year % 100),          // Năm (2 số cuối, vd: 26)
+        toBCD(Math.floor(year / 100)) // Thế kỷ (vd: 20)
+    ];
+
+    // Khung chuẩn CJ/T-188: FE FE 68 10 AA AA AA AA AA AA AA 04 0A [Payload] [CS] 16
+    const frame = [0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x04, 0x0A, ...payload];
+    
+    // Tính Checksum (CS) từ byte 68 đến hết payload
+    let cs = 0;
+    for (let i = 2; i < frame.length; i++) {
+        cs = (cs + frame[i]) & 0xFF;
+    }
+    
+    frame.push(cs);
+    frame.push(0x16); // Byte kết thúc
+    
+    return new Uint8Array(frame);
+};
